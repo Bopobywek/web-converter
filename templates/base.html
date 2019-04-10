@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Oswald');
+
+        .with-s {
+            width: 500px;
+            height: 200px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 8px rgba(204, 201, 210, 0.41);
+        }
+
+        body {
+            font-family: 'Oswald', sans-serif;
+            background: #f7f9f9;
+        }
+
+        .download-card {
+            height: 150px;
+            margin-top: 100px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 8px rgba(204, 201, 210, 0.41);
+        }
+        .form-file-upload {
+            width: 500px;
+            margin: auto;
+            margin-top: 120px;
+        }
+
+        .btn-tab {
+            padding: 10px;
+            width: 150px;
+            margin: auto;
+            margin-top: 25px;
+        }
+
+        footer {
+            position: static;
+            height: 20px;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .main-section {
+            width: 350px;
+            margin: 0 auto;
+            margin-top: 50px;
+            padding: 0;
+        }
+
+        .modal-content {
+            box-shadow: 0px 0px 3px #848484;
+            padding: 5px;
+        }
+    </style>
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-dark bg-dark sticky-top" style="box-shadow: 0 2px 5px rgba(51,51,53,0.84);">
+        <a class="navbar-brand" href="/">Converter</a>
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#NavContent"
+                aria-controls="NavContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="NavContent">
+
+            <ul class="navbar-nav mr-auto">
+                {% if not current_user.is_authenticated %}
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/login">Sign in
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/registration">Sign up</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink"
+                           data-toggle="dropdown"
+                           aria-haspopup="true"
+                           aria-expanded="false">{{ current_user.username }}</a>
+                        <div class="dropdown-menu dropdown-dark" aria-labelledby="navbarDropdownMenuLink">
+                            <a class="dropdown-item" href="/logout">Log out</a>
+                        </div>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+</header>
+<main>
+    {% block content %}{% endblock %}
+</main>
+<footer class="fixed-footer">
+
+    <div class="text-center" style="margin-top: 60px;">Created by AndrewN for
+        <a href="https://yandexlyceum.ru/"> YandexLyceum</a>
+        WebServer Project
+    </div>
+
+</footer>
+</body>
+</html>

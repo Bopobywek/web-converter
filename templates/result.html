@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <div class="card text-center download-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Old File</h5>
+                        <a href="/download/{{ session.get('user_operation_id') }}" class="btn btn-primary btn-tab"
+                        style="width: 50%;">
+                            Download!</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card text-center download-card">
+                    <div class="card-body">
+                        <h5 class="card-title">New File</h5>
+                        <a href="/download/{{ session.get('user_operation_id') }}" class="btn btn-primary btn-tab"
+                        style="width: 50%;">
+                            Download!</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

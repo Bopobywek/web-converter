@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+
+    <form class="form-file-upload" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <h2 class="text-center" style="margin-top: -20px; margin-bottom: 40px;">Choose file and format</h2>
+        <div class="input-group" style="margin-top: 10px; margin-bottom: 10px;">
+            <div class="custom-file">
+                {{ form.field(type="file", class="custom-file-input", id="inputGroupFile04",
+                 **{'aria-describedby': "inputGroupFileAddon04"}) }}
+                {{ form.field.label(class="custom-file-label", for="inputGroupFile04") }}
+            </div>
+            <div class="input-group mb-3" style="margin-top: 10px; margin-bottom: 10px;">
+                <div class="input-group-prepend">
+                    <label class="input-group-text" for="inputGroupSelect01">New format</label>
+                </div>
+                {{ form.format(class="custom-select", id="inputGroupSelect01") }}
+            </div>
+        </div>
+        <center>
+            <div class="input-group-append" style="margin: auto;">
+                {{ form.submit(class="btn btn-success", id="inputGroupFileAddon04", style="width: 100%;") }}
+            </div>
+        </center>
+    </form>
+{% endblock %}

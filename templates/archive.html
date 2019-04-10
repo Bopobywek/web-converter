@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+    {% if form %}
+    <form class="box" method="post" action="" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        {{ form.field() }}
+        {{ form.submit() }}
+    </form>
+    {% endif %}
+    <ul>
+    {% for el in files %}
+    <li>{{ el }} <button class="btn-primary">Convert!</button></li>
+    </ul>
+    {% endfor %}
+{% endblock %}
