@@ -1,5 +1,7 @@
 import os
 import shutil
+from convert_functions import VIDEO_SUPPORTED_FORMATS, AUDIO_SUPPORTED_FORMATS, PICTURE_SUPPORTED_FORMATS
+from pathlib import Path
 
 USER_FILES_DIRCTORY = 'files/'
 
@@ -23,6 +25,16 @@ def validate_file(path, name):
     if os.path.isdir(path):
         directory = os.listdir(path)
         return name in directory
+
+
+def get_file_type(file):
+    suf = Path(file).suffix[1:].upper()
+    if suf in AUDIO_SUPPORTED_FORMATS:
+        return AUDIO_SUPPORTED_FORMATS
+    elif suf in PICTURE_SUPPORTED_FORMATS:
+        return PICTURE_SUPPORTED_FORMATS
+    elif suf in VIDEO_SUPPORTED_FORMATS:
+        return VIDEO_SUPPORTED_FORMATS
 
 
 def save_archive(path, filename, data):

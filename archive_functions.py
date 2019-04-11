@@ -34,8 +34,8 @@ class ArchiveFuncs(object):
         for root, dirs, files in os.walk(os.path.join(self.path, ARCHIVE_CONTENT_FOLDER)):
             content_of_dir['dirs'].extend(dirs)
             for file in files:
-                content_of_dir['files_full'].append(os.path.join(root, file))
-                content_of_dir['files'].append('/'.join(os.path.join(root, file).split('/')[3:]))
+                content_of_dir['files'].append((os.path.join(root, file),
+                                                '/'.join(os.path.join(root, file).split('/')[3:])))
         return content_of_dir, '{}{}'.format(self.filename, self.suffix)
 
 

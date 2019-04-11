@@ -31,10 +31,11 @@
         <li class="list-group-item" style="margin-top: 5px; margin-bottom: 5px;">
             <div class="row">
                 <div class="col">
-                    <p style="margin: auto;">{{ el }}</p>
+                    <p style="margin: auto;">{{ el[1] }}</p>
                 </div>
                 <div class="col">
-                    <a class="btn btn-outline-success" href="#" style="float: right;"> Extract!</a>
+                    <a class="btn btn-outline-success" href="{{ url_for('download', file_path=el[0])}}"
+                       style="float: right;"> Extract!</a>
                 </div>
             </div>
         </li>

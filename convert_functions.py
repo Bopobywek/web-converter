@@ -5,7 +5,7 @@ from pydub import AudioSegment
 from PIL import Image
 from pathlib import Path
 
-PICTURE_SUPPORTED_FORMATS = ['WebP', 'BMP', 'PPM',
+PICTURE_SUPPORTED_FORMATS = ['WEBP', 'BMP', 'PPM',
                              'JPEG', 'TIFF', 'GIF', 'PNG', 'SGI', 'JPG']
 AUDIO_SUPPORTED_FORMATS = ['MP3', 'WAV', 'OGG', 'FLAC', 'OPUS']
 VIDEO_SUPPORTED_FORMATS = ['MP4', 'AVI', 'GIF', 'OGG', 'FLV', 'MKV']
@@ -16,7 +16,7 @@ class PictureConverter(object):
     def __init__(self, path, filename):
         self.convertations = {'BMP': self.to_bmp, 'GIF': self.to_gif, 'JPEG': self.to_jpeg, 'PNG': self.to_png,
                               'MSP': self.to_msp, 'PCX': self.to_pcx, 'PPM': self.to_ppm, 'SGI': self.to_sgi,
-                              'TIFF': self.to_tiff, 'WebP': self.to_webp, 'XBM': self.to_xbm,
+                              'TIFF': self.to_tiff, 'WEBP': self.to_webp, 'XBM': self.to_xbm,
                               'JPG': self.to_jpeg}
         self.path = path
         self.file_suffix = Path(filename).suffix
@@ -32,6 +32,8 @@ class PictureConverter(object):
         func = self.convertations.get(new_format)
         func()
         os.remove(self.original_file)
+        return {'old_file_path': self.original_file,
+                'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
 
     def to_bmp(self):
         self.get_image_object().save(os.path.join(self.path, '{}.bmp'.format(self.filename)))
@@ -87,6 +89,7 @@ class AudioConverter(object):
     def convert(self, new_format):
         func = self.convertations.get(new_format)
         func()
+        os.remove(self.original_file)
         return {'old_file_path': self.original_file,
                 'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
 
@@ -123,6 +126,7 @@ class VideoConverter(object):
     def convert(self, new_format):
         func = self.convertations.get(new_format)
         ffmpeg.run(func())
+        os.remove(self.original_file)
         return {'old_file_path': self.original_file,
                 'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
 
