@@ -11,7 +11,7 @@ from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
 from convert_functions import PictureConverter, VideoConverter, AudioConverter, Converter
 from db import db, User, update_session
 from file_upload import PictureForm, AudioForm, VideoForm, \
-    ArchiveOpenForm, ArchiveCreateForm, ArchiveConvertForm, ArchiveConvertForm2
+    ArchiveOpenForm, ArchiveConvertForm, ArchiveConvertForm2
 from loginform import LoginForm
 from regform import RegForm
 from system_function import create_folder, get_file_type
@@ -96,10 +96,14 @@ def open_archive():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = secure_filename(form.file.data.filename)
-        form.file.data.save(os.path.join(path_to_folder, filename))
+        filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
+        if filename is None:
+            return redirect(url_for('index'))
         arc = ArchiveFuncs(path_to_folder, filename)
-        arc.extract_archive()
+        result = arc.extract_archive()
+        if isinstance(result, tuple):
+            flash('Sorry, an unknown error occurred.')
+            return redirect(url_for('index'))
         files, filename = arc.all_files()
         return render_template('open-arc.html', files=files.get('files'), filename=filename)
     return render_template('open-arc.html', form=form)
@@ -109,16 +113,21 @@ def open_archive():
 def convert_archive():
     form = ArchiveConvertForm()
     form2 = ArchiveConvertForm2()
+    archive_filename = None
     if form.validate_on_submit():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = secure_filename(form.file.data.filename)
-        form.file.data.save(os.path.join(path_to_folder, filename))
+        filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
+        if filename is None:
+            return redirect(url_for('index'))
         arc = ArchiveFuncs(path_to_folder, filename)
-        arc.extract_archive()
-        files, filename = arc.all_files()
-        return render_template('convert-arc.html', files=files.get('files'), filename=filename,
+        result = arc.extract_archive()
+        if isinstance(result, tuple):
+            flash('Sorry, an unknown error occurred. Please try again later.')
+            return redirect(url_for('index'))
+        files, archive_filename = arc.all_files()
+        return render_template('convert-arc.html', files=files.get('files'), filename=archive_filename,
                                get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS, form2=form2)
     if form2.validate_on_submit():
         dict_of_files = request.form.to_dict()
@@ -128,14 +137,20 @@ def convert_archive():
             path = '/'.join(el_of_paths[:-1])
             file = el_of_paths[-1]
             converter = Converter(path, file, dict_of_files[el])
-            converter.convert()  # TODO: Error handler
-            arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id'), ), str(uuid.uuid4().hex))
-            # TODO: Original name
+            result = converter.convert()
+            if bool(result):
+                flash('Sorry, {} error occurred, but the archive can be successfully created.'
+                      ' Please note that there may be broken content.'.format(len(result)))
+            archive_filename = uuid.uuid4().hex if archive_filename is None else archive_filename
+            arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id')),
+                                         archive_filename)
             path_new = arc_converter.make_archive(dict_of_files['arc'])
-            if path_new is not None:
+            if isinstance(path_new, str):
                 el_path_new = path_new.split('/')
                 file_new = el_path_new[-1]
                 return render_template('result.html', path=path_new, new_filename=file_new)
+            else:
+                flash('Sorry, an unknown error occurred.')
             return redirect(url_for('index'))
         return redirect(url_for('convert_archive'))
     return render_template('convert-arc.html', form=form)
@@ -143,12 +158,17 @@ def convert_archive():
 
 @app.route('/download/<path:file_path>', methods=['GET', 'POST'])
 def download(file_path):
-    if 'files' in file_path and session.get('user_operation_id') in file_path:
-        splited = file_path.split('/')
-        filename = splited[-1]
-        path = '/'.join(splited[:-1])
-        return send_from_directory(path, filename, as_attachment=True)
-    return redirect(url_for('index'))
+    try:
+        if 'files' in file_path and session.get('user_operation_id') in file_path:
+            splited = file_path.split('/')
+            filename = splited[-1]
+            path = '/'.join(splited[:-1])
+            return send_from_directory(path, filename, as_attachment=True)
+        return redirect(url_for('index'))
+    except Exception as e:
+        flash('Sorry, an unknown error occurred while getting the link to download the file.'
+              ' Please try again later.')
+        return redirect(url_for('index'))
 
 
 @app.route('/picture-convert', methods=['GET', 'POST'])
@@ -158,8 +178,9 @@ def convert_picture():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = secure_filename(form.file.data.filename)
-        form.file.data.save(os.path.join(path_to_folder, filename))
+        filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
+        if filename is None:
+            return redirect(url_for('index'))
         converter = PictureConverter(path_to_folder, filename)
         res = converter.convert(form.file_format.data)
         path = res['new_file_path'] if isinstance(error_converting(res), dict) else 'error'
@@ -177,8 +198,9 @@ def convert_audio():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = form.file.data.filename
-        form.file.data.save(os.path.join(path_to_folder, filename))
+        filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
+        if filename is None:
+            return redirect(url_for('index'))
         converter = AudioConverter(path_to_folder, filename)
         res = converter.convert(form.file_format.data)
         path = res['new_file_path'] if isinstance(error_converting(res), dict) else 'error'
@@ -196,8 +218,9 @@ def convert_video():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = form.file.data.filename
-        form.file.data.save(os.path.join(path_to_folder, filename))
+        filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
+        if filename is None:
+            return redirect(url_for('index'))
         converter = VideoConverter(path_to_folder, filename)
         res = converter.convert(form.file_format.data)
         path = res['new_file_path'] if isinstance(error_converting(res), dict) else 'error'
@@ -220,6 +243,17 @@ def error_converting(result):
               ' If the file is working, then try changing the format')
         return None
     return result
+
+
+#
+
+def save_file(filename, path, file_data):
+    try:
+        filename = secure_filename(filename)
+        file_data.save(os.path.join(path, filename))
+        return filename
+    except Exception as e:
+        flash('Sorry, an unknown error occurred. Please try again later.')
 
 
 if __name__ == '__main__':

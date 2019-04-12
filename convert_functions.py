@@ -30,13 +30,16 @@ class PictureConverter(object):
         return rgb_im
 
     def convert(self, new_format):
-        if self.original_file == os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower())):
-            self.filename = '{}{}'.format(uuid.uuid4().hex, self.filename)
-        func = self.convertations.get(new_format)
-        func()
-        os.remove(self.original_file)
-        return {'old_file_path': self.original_file,
-                'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
+        try:
+            if self.original_file == os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower())):
+                self.filename = '{}{}'.format(uuid.uuid4().hex, self.filename)
+            func = self.convertations.get(new_format)
+            func()
+            os.remove(self.original_file)
+            return {'old_file_path': self.original_file,
+                    'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
+        except Exception as e:
+            return e
 
     def to_bmp(self):
         self.get_image_object().save(os.path.join(self.path, '{}.bmp'.format(self.filename)))
@@ -90,13 +93,16 @@ class AudioConverter(object):
         return audio
 
     def convert(self, new_format):
-        if self.original_file == os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower())):
-            self.filename = '{}{}'.format(uuid.uuid4().hex, self.filename)
-        func = self.convertations.get(new_format)
-        func()
-        os.remove(self.original_file)
-        return {'old_file_path': self.original_file,
-                'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
+        try:
+            if self.original_file == os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower())):
+                self.filename = '{}{}'.format(uuid.uuid4().hex, self.filename)
+            func = self.convertations.get(new_format)
+            func()
+            os.remove(self.original_file)
+            return {'old_file_path': self.original_file,
+                    'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
+        except Exception as e:
+            return e
 
     def to_mp3(self):
         self.get_audio_object().export(os.path.join(self.path, '{}.mp3'.format(self.filename)), format='mp3')
@@ -137,7 +143,7 @@ class VideoConverter(object):
             os.remove(self.original_file)
             return {'old_file_path': self.original_file,
                     'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
-        except BaseException as e:
+        except Exception as e:
             return e
 
     def to_avi(self):
@@ -168,15 +174,19 @@ class Converter(object):
         self.new_format = new_format
 
     def convert(self):
+        converter = None
+        errors = list()
         if self.new_format.upper() in AUDIO_SUPPORTED_FORMATS:
             converter = AudioConverter(self.path, self.filename)
-            converter.convert(self.new_format)
         elif self.new_format.upper() in VIDEO_SUPPORTED_FORMATS:
             converter = VideoConverter(self.path, self.filename)
-            converter.convert(self.new_format)
         elif self.new_format.upper() in PICTURE_SUPPORTED_FORMATS:
             converter = PictureConverter(self.path, self.filename)
-            converter.convert(self.new_format)
+        if converter is not None:
+            result = converter.convert(self.new_format)
+            if not isinstance(result, dict):
+                errors.append(result)
+        return errors
 
 
 if __name__ == '__main__':
