@@ -24,36 +24,41 @@
     <div class="row">
         <div class="container" style="display: flex">
             <h2 class="text-center" style="margin-top: -20px; margin-bottom: 40px;">{{ filename }} to</h2>
-            <select class="custom-select my-1 mr-sm-2" id="arc-select" name="arc" style="width: 100px;">
-                {% for type_el in arc_formats %}
-                <option value="{{ type_el.upper() }}">{{ type_el }}</option>
-                {% endfor %}
-            </select>
         </div>
     </div>
-    <ul class="list-group">
-        {% for el in files %}
-        <li class="list-group-item" style="margin-top: 5px; margin-bottom: 5px;">
-            <div class="row">
-                <div class="col">
-                    <p style="margin: auto;">{{ el }}</p>
+    <form method="post">
+        {{ form2.hidden_tag() }}
+        <select class="custom-select my-1 mr-sm-2" id="arc-select" name="arc" style="width: 100px;">
+            {% for type_el in arc_formats %}
+            <option value="{{ type_el }}">{{ type_el }}</option>
+            {% endfor %}
+        </select>
+        {{ form2.submit2(class="btn btn-success") }}
+        <ul class="list-group">
+            {% for el in files %}
+            <li class="list-group-item" style="margin-top: 5px; margin-bottom: 5px;">
+                <div class="row">
+                    <div class="col">
+                        <p style="margin: auto;">{{ el[1] }}</p>
+                    </div>
+                    <div class="col">
+                        <select class="custom-select my-1 mr-sm-2" id="inlineFormCustomSelectFomat" name="{{ el[0] }}">
+                            {% with type_file = get_file_type(file=el[0]) %}
+                            {% if type_file %}
+                            <option value="not_convert">Do not convert</option>
+                            {% for type_el in type_file %}
+                            <option value="{{ type_el.upper() }}">{{ type_el }}</option>
+                            {% endfor %}
+                            {% endif %}
+                            {% endwith %}
+                        </select>
+                    </div>
                 </div>
-                <div class="col">
-                    <select class="custom-select my-1 mr-sm-2" id="inlineFormCustomSelectFomat" name="{{ el }}">
-                        {% with type_file = get_file_type(file=el) %}
-                        {% if type_file %}
-                        {% for type_el in type_file %}
-                        <option value="{{ type_el.upper() }}">{{ type_el }}</option>
-                        {% endfor %}
-                        {% endif %}
-                        {% endwith %}
-                    </select>
-                </div>
-            </div>
-        </li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endif %}
+    </form>
 </div>
 {% endblock %}

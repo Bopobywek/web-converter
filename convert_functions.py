@@ -1,10 +1,10 @@
 import os
+import uuid
+from pathlib import Path
 
 import ffmpeg
-from pydub import AudioSegment
 from PIL import Image
-from pathlib import Path
-import uuid
+from pydub import AudioSegment
 
 PICTURE_SUPPORTED_FORMATS = ['WEBP', 'BMP', 'PPM',
                              'JPEG', 'TIFF', 'GIF', 'PNG', 'SGI', 'JPG']
@@ -158,6 +158,25 @@ class VideoConverter(object):
     def to_flv(self):
         return ffmpeg.output(self.get_stream_object(), os.path.join(self.path, '{}.flv'.format(self.filename)),
                              **{'c:v': 'libx264', 'crf': '28', 'ar': '22050'})
+
+
+class Converter(object):
+
+    def __init__(self, path, filename, new_format):
+        self.path = path
+        self.filename = filename
+        self.new_format = new_format
+
+    def convert(self):
+        if self.new_format.upper() in AUDIO_SUPPORTED_FORMATS:
+            converter = AudioConverter(self.path, self.filename)
+            converter.convert(self.new_format)
+        elif self.new_format.upper() in VIDEO_SUPPORTED_FORMATS:
+            converter = VideoConverter(self.path, self.filename)
+            converter.convert(self.new_format)
+        elif self.new_format.upper() in PICTURE_SUPPORTED_FORMATS:
+            converter = PictureConverter(self.path, self.filename)
+            converter.convert(self.new_format)
 
 
 if __name__ == '__main__':
