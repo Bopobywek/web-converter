@@ -7,6 +7,7 @@ ARCHIVE_SUPPORTED_FORMATS = [x[0] for x in shutil.get_unpack_formats()]
 SUFFIXES_TO_FORMAT = {x[0]: x[1] for x in shutil.get_unpack_formats()}
 FORMAT_TO_SUFFIXES = {s: x for x, y in SUFFIXES_TO_FORMAT.items() for s in y}
 SUPPORTED_SUFFIXES = list(FORMAT_TO_SUFFIXES.keys())
+SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS = [x.split('.')[-1] for x in SUPPORTED_SUFFIXES]
 
 
 class ArchiveFuncs(object):
@@ -42,3 +43,4 @@ class ArchiveFuncs(object):
 if __name__ == '__main__':
     print(ARCHIVE_SUPPORTED_FORMATS)
     print(SUPPORTED_SUFFIXES)
+    print(SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS)

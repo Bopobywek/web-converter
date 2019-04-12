@@ -4,6 +4,7 @@ import ffmpeg
 from pydub import AudioSegment
 from PIL import Image
 from pathlib import Path
+import uuid
 
 PICTURE_SUPPORTED_FORMATS = ['WEBP', 'BMP', 'PPM',
                              'JPEG', 'TIFF', 'GIF', 'PNG', 'SGI', 'JPG']
@@ -29,6 +30,8 @@ class PictureConverter(object):
         return rgb_im
 
     def convert(self, new_format):
+        if self.original_file == os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower())):
+            self.filename = '{}{}'.format(uuid.uuid4().hex, self.filename)
         func = self.convertations.get(new_format)
         func()
         os.remove(self.original_file)
@@ -87,6 +90,8 @@ class AudioConverter(object):
         return audio
 
     def convert(self, new_format):
+        if self.original_file == os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower())):
+            self.filename = '{}{}'.format(uuid.uuid4().hex, self.filename)
         func = self.convertations.get(new_format)
         func()
         os.remove(self.original_file)
@@ -124,11 +129,16 @@ class VideoConverter(object):
         return stream
 
     def convert(self, new_format):
-        func = self.convertations.get(new_format)
-        ffmpeg.run(func())
-        os.remove(self.original_file)
-        return {'old_file_path': self.original_file,
-                'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
+        try:
+            if self.original_file == os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower())):
+                self.filename = '{}{}'.format(uuid.uuid4().hex, self.filename)
+            func = self.convertations.get(new_format)
+            ffmpeg.run(func())
+            os.remove(self.original_file)
+            return {'old_file_path': self.original_file,
+                    'new_file_path': os.path.join(self.path, '{}.{}'.format(self.filename, new_format.lower()))}
+        except BaseException as e:
+            return e
 
     def to_avi(self):
         return ffmpeg.output(self.get_stream_object(), os.path.join(self.path, '{}.avi'.format(self.filename)))

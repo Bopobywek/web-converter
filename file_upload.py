@@ -1,46 +1,43 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
-from wtforms import SubmitField, SelectField, MultipleFileField
+from wtforms import SubmitField, SelectField, MultipleFileField, TextField
 
-from archive_functions import ARCHIVE_SUPPORTED_FORMATS
+from archive_functions import SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS, ARCHIVE_SUPPORTED_FORMATS
 from convert_functions import PICTURE_SUPPORTED_FORMATS, AUDIO_SUPPORTED_FORMATS, VIDEO_SUPPORTED_FORMATS
 
 
 class PictureForm(FlaskForm):
-    field = FileField('Choose file', validators=[FileRequired(),
-                                                 FileAllowed([x.lower() for x in PICTURE_SUPPORTED_FORMATS],
-                                                             'Unsupported type')])
-    format = SelectField('Format', choices=[(x, x.lower()) for x in PICTURE_SUPPORTED_FORMATS],
-                         validators=[])
+    file = FileField('Choose file', validators=[FileRequired(),
+                                                FileAllowed([x.lower() for x in PICTURE_SUPPORTED_FORMATS],
+                                                            'Unsupported type')])
+    file_format = SelectField('Format', choices=[(x, x.lower()) for x in PICTURE_SUPPORTED_FORMATS])
     submit = SubmitField('Convert!')
 
 
 class AudioForm(FlaskForm):
-    field = FileField('Choose file', validators=[FileRequired(),
-                                                 FileAllowed([x.lower() for x in AUDIO_SUPPORTED_FORMATS],
-                                                             'Unsupported type')])
-    format = SelectField('Format', choices=[(x, x.lower()) for x in AUDIO_SUPPORTED_FORMATS],
-                         validators=[])
+    file = FileField('Choose file', validators=[FileRequired(),
+                                                FileAllowed([x.lower() for x in AUDIO_SUPPORTED_FORMATS],
+                                                            'Unsupported type')])
+    file_format = SelectField('Format', choices=[(x, x.lower()) for x in AUDIO_SUPPORTED_FORMATS])
     submit = SubmitField('Convert!')
 
 
-class VideoForm(FlaskForm):  # TODO: change name of first and second attributes
-    field = FileField('Choose file', validators=[FileRequired(),
-                                                 FileAllowed([x.lower() for x in VIDEO_SUPPORTED_FORMATS],
-                                                             'Unsupported type')])
-    format = SelectField('Format', choices=[(x, x.lower()) for x in VIDEO_SUPPORTED_FORMATS],
-                         validators=[])  # TODO: validation
+class VideoForm(FlaskForm):
+    file = FileField('Choose file', validators=[FileRequired(),
+                                                FileAllowed([x.lower() for x in VIDEO_SUPPORTED_FORMATS],
+                                                            'Unsupported type')])
+    file_format = SelectField('Format', choices=[(x, x.lower()) for x in VIDEO_SUPPORTED_FORMATS])
     submit = SubmitField('Convert!')
 
 
 class ArchiveOpenForm(FlaskForm):
-    file = FileField('Choose file', validators=[FileRequired(), FileAllowed(ARCHIVE_SUPPORTED_FORMATS,
+    file = FileField('Choose file', validators=[FileRequired(), FileAllowed(SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS,
                                                                             'Unsupported type')])
-    submit = SubmitField('Open')
+    submit = SubmitField('Open!')
 
 
 class ArchiveCreateForm(FlaskForm):
-    files = MultipleFileField('Choose file', validators=[FileRequired()])
-    file_format = SelectField('Format', choices=[(x, x.lower()) for x in ARCHIVE_SUPPORTED_FORMATS],
-                              validators=[])
-    submit = SubmitField('Open')
+    filename = TextField('Filename', validators=[])
+    files = MultipleFileField('Choose files')
+    file_format = SelectField('Format', choices=[(x, x.lower()) for x in ARCHIVE_SUPPORTED_FORMATS])
+    submit = SubmitField('Create!')
