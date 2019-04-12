@@ -1,14 +1,17 @@
 import os
 import uuid
 
-from flask import Flask, render_template, redirect, flash, url_for, session, send_from_directory
-from flask_login import LoginManager, login_user, current_user, logout_user, login_required
+from flask import Flask, render_template, redirect, flash, \
+    url_for, session, send_from_directory, request
+from flask_login import LoginManager, login_user, \
+    current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
 
 from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
-from convert_functions import PictureConverter, VideoConverter, AudioConverter
+from convert_functions import PictureConverter, VideoConverter, AudioConverter, Converter
 from db import db, User, update_session
-from file_upload import PictureForm, AudioForm, VideoForm, ArchiveOpenForm, ArchiveCreateForm
+from file_upload import PictureForm, AudioForm, VideoForm, \
+    ArchiveOpenForm, ArchiveCreateForm, ArchiveConvertForm, ArchiveConvertForm2
 from loginform import LoginForm
 from regform import RegForm
 from system_function import create_folder, get_file_type
@@ -114,7 +117,8 @@ def create_archive():
 
 @app.route('/archive-convert', methods=['GET', 'POST'])
 def convert_archive():
-    form = ArchiveOpenForm()
+    form = ArchiveConvertForm()
+    form2 = ArchiveConvertForm2()
     if form.validate_on_submit():
         check_operation_id()
         operation_id = session.get('user_operation_id')
@@ -125,7 +129,25 @@ def convert_archive():
         arc.extract_archive()
         files, filename = arc.all_files()
         return render_template('convert-arc.html', files=files.get('files'), filename=filename,
-                               get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS)
+                               get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS, form2=form2)
+    if form2.validate_on_submit():
+        dict_of_files = request.form.to_dict()
+        files = list(filter(lambda x: os.path.exists(x), dict_of_files.keys()))
+        for el in files:
+            el_of_paths = el.split('/')
+            path = '/'.join(el_of_paths[:-1])
+            file = el_of_paths[-1]
+            converter = Converter(path, file, dict_of_files[el])
+            converter.convert()  # TODO: Error handler
+            arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id'), ), str(uuid.uuid4().hex))
+            # TODO: Original name
+            path_new = arc_converter.make_archive(dict_of_files['arc'])
+            if path_new is not None:
+                el_path_new = path_new.split('/')
+                file_new = el_path_new[-1]
+                return render_template('result.html', path=path_new, new_filename=file_new)
+            return redirect(url_for('index'))
+        return redirect(url_for('convert_archive'))
     return render_template('convert-arc.html', form=form)
 
 

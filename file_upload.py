@@ -31,9 +31,22 @@ class VideoForm(FlaskForm):
 
 
 class ArchiveOpenForm(FlaskForm):
-    file = FileField('Choose file', validators=[FileRequired(), FileAllowed(SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS,
-                                                                            'Unsupported type')])
+    file = FileField('Choose file', validators=[FileRequired(),
+                                                FileAllowed(SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS.values(),
+                                                            'Unsupported type')])
     submit = SubmitField('Open!')
+
+
+class ArchiveConvertForm(FlaskForm):
+    file = FileField('Choose file', validators=[FileRequired(),
+                                                FileAllowed(SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS.values(),
+                                                            'Unsupported type')])
+    submit = SubmitField('Open!')
+    submit2 = SubmitField('Convert!')
+
+
+class ArchiveConvertForm2(FlaskForm):
+    submit2 = SubmitField('Convert!')
 
 
 class ArchiveCreateForm(FlaskForm):
