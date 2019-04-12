@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="container" style="margin-top: 50px;">
+    {% if form %}
+    <form method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag()}}
+        <h2 class="text-center" style="margin-top: -20px; margin-bottom: 40px;">Choose file and format</h2>
+        <div class="input-group" style="margin-top: 10px; margin-bottom: 10px;">
+            <div class="custom-file">
+                {{ form.file(type="file", class="custom-file-input", id="inputGroupFile04",
+                **{'aria-describedby': "inputGroupFileAddon04"}) }}
+                {{ form.file.label(class="custom-file-label", for="inputGroupFile04") }}
+            </div>
+        </div>
+        <center>
+            <div class="input-group-append" style="margin: auto;">
+                {{ form.submit(class="btn btn-success", id="inputGroupFileAddon04", style="width: 100%;") }}
+            </div>
+        </center>
+    </form>
+    {% else %}
+    {% if files %}
+    <div class="row">
+        <div class="container" style="display: flex">
+            <h2 class="text-center" style="margin-top: -20px; margin-bottom: 40px;">{{ filename }} to</h2>
+            <select class="custom-select my-1 mr-sm-2" id="arc-select" name="arc" style="width: 100px;">
+                {% for type_el in arc_formats %}
+                <option value="{{ type_el.upper() }}">{{ type_el }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <ul class="list-group">
+        {% for el in files %}
+        <li class="list-group-item" style="margin-top: 5px; margin-bottom: 5px;">
+            <div class="row">
+                <div class="col">
+                    <p style="margin: auto;">{{ el }}</p>
+                </div>
+                <div class="col">
+                    <select class="custom-select my-1 mr-sm-2" id="inlineFormCustomSelectFomat" name="{{ el }}">
+                        {% with type_file = get_file_type(file=el) %}
+                        {% if type_file %}
+                        {% for type_el in type_file %}
+                        <option value="{{ type_el.upper() }}">{{ type_el }}</option>
+                        {% endfor %}
+                        {% endif %}
+                        {% endwith %}
+                    </select>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

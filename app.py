@@ -1,18 +1,17 @@
 import os
-
-from flask import Flask, render_template, redirect, flash, url_for, session, request, abort
-from flask import send_from_directory
-from flask_login import LoginManager, login_user, current_user, logout_user, login_required
-from werkzeug.utils import secure_filename
 import uuid
 
+from flask import Flask, render_template, redirect, flash, url_for, session, send_from_directory
+from flask_login import LoginManager, login_user, current_user, logout_user, login_required
+from werkzeug.utils import secure_filename
 
+from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
+from convert_functions import PictureConverter, VideoConverter, AudioConverter
+from db import db, User, update_session
+from file_upload import PictureForm, AudioForm, VideoForm, ArchiveOpenForm, ArchiveCreateForm
 from loginform import LoginForm
 from regform import RegForm
-from file_upload import PictureForm, AudioForm, VideoForm
-from db import db, User, update_session
-from system_function import create_folder
-from convert_functions import PictureConverter, VideoConverter, AudioConverter
+from system_function import create_folder, get_file_type
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super_key'
@@ -29,8 +28,7 @@ login_manager.login_view = 'login'
 
 @app.before_request
 def before_request():
-    if 'user_operation_id' not in session:
-        session['user_operation_id'] = uuid.uuid4().hex
+    check_operation_id()
 
 
 @login_manager.user_loader
@@ -41,12 +39,6 @@ def load_user(user_id):
 @app.route('/')
 def index():
     return render_template('main.html', title='Converter')
-
-
-@app.route('/download')
-def download():
-    if 'user_operation_id' in session:
-        send_from_directory(os.path.join('files', session.get('user_operation_id')), )
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -94,21 +86,75 @@ def registration():
     return render_template('registration.html', form=form, title='Registration')
 
 
-# TODO: Check types
+@app.route('/archive-open', methods=['GET', 'POST'])
+def open_archive():
+    form = ArchiveOpenForm()
+    if form.validate_on_submit():
+        check_operation_id()
+        operation_id = session.get('user_operation_id')
+        path_to_folder = create_folder(operation_id)
+        filename = secure_filename(form.file.data.filename)
+        form.file.data.save(os.path.join(path_to_folder, filename))
+        arc = ArchiveFuncs(path_to_folder, filename)
+        arc.extract_archive()
+        files, filename = arc.all_files()
+        return render_template('open-arc.html', files=files.get('files'), filename=filename)
+    return render_template('open-arc.html', form=form)
+
+
+@app.route('/archive-create', methods=['GET', 'POST'])
+def create_archive():
+    form = ArchiveCreateForm()
+    if form.validate_on_submit():
+        check_operation_id()
+        operation_id = session.get('user_operation_id')
+        print(form.data.files)
+    return render_template('create-arc.html', form=form)
+
+
+@app.route('/archive-convert', methods=['GET', 'POST'])
+def convert_archive():
+    form = ArchiveOpenForm()
+    if form.validate_on_submit():
+        check_operation_id()
+        operation_id = session.get('user_operation_id')
+        path_to_folder = create_folder(operation_id)
+        filename = secure_filename(form.file.data.filename)
+        form.file.data.save(os.path.join(path_to_folder, filename))
+        arc = ArchiveFuncs(path_to_folder, filename)
+        arc.extract_archive()
+        files, filename = arc.all_files()
+        return render_template('convert-arc.html', files=files.get('files'), filename=filename,
+                               get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS)
+    return render_template('convert-arc.html', form=form)
+
+
+@app.route('/download/<path:file_path>', methods=['GET', 'POST'])
+def download(file_path):
+    if 'files' in file_path and session.get('user_operation_id') in file_path:
+        splited = file_path.split('/')
+        filename = splited[-1]
+        path = '/'.join(splited[:-1])
+        return send_from_directory(path, filename, as_attachment=True)
+    return redirect(url_for('index'))
+
+
 @app.route('/picture-convert', methods=['GET', 'POST'])
 def convert_picture():
     form = PictureForm()
     if form.validate_on_submit():
+        check_operation_id()
         operation_id = session.get('user_operation_id')
-        if operation_id is None:
-            session['user_operation_id'] = uuid.uuid4().hex
-            operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = secure_filename(form.field.data.filename)
-        form.field.data.save(os.path.join(path_to_folder, filename))
+        filename = secure_filename(form.file.data.filename)
+        form.file.data.save(os.path.join(path_to_folder, filename))
         converter = PictureConverter(path_to_folder, filename)
-        files = converter.convert(form.format.data)
-        return render_template('result.html', path_files=files)
+        res = converter.convert(form.file_format.data)
+        path = res['new_file_path'] if isinstance(error_converting(res), dict) else 'error'
+        if path == 'error':
+            return redirect(url_for('index'))
+        new_file = path.split('/')[-1]
+        return render_template('result.html', path=path, new_filename=new_file)
     return render_template('convert.html', form=form)
 
 
@@ -116,40 +162,53 @@ def convert_picture():
 def convert_audio():
     form = AudioForm()
     if form.validate_on_submit():
+        check_operation_id()
         operation_id = session.get('user_operation_id')
-        if operation_id is None:
-            session['user_operation_id'] = uuid.uuid4().hex
-            operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = form.field.data.filename
-        form.field.data.save(os.path.join(path_to_folder, filename))
+        filename = form.file.data.filename
+        form.file.data.save(os.path.join(path_to_folder, filename))
         converter = AudioConverter(path_to_folder, filename)
-        converter.convert(form.format.data)
-        return render_template('result.html')
+        res = converter.convert(form.file_format.data)
+        path = res['new_file_path'] if isinstance(error_converting(res), dict) else 'error'
+        if path == 'error':
+            return redirect(url_for('index'))
+        new_file = path.split('/')[-1]
+        return render_template('result.html', path=path, new_filename=new_file)
     return render_template('convert.html', form=form)
-
-
-@app.route('/processing')
-def wait():
-    return render_template('processing.html')
 
 
 @app.route('/video-convert', methods=['GET', 'POST'])
 def convert_video():
     form = VideoForm()
     if form.validate_on_submit():
+        check_operation_id()
         operation_id = session.get('user_operation_id')
-        if operation_id is None:
-            session['user_operation_id'] = uuid.uuid4().hex
-            operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
-        filename = form.field.data.filename
-        form.field.data.save(os.path.join(path_to_folder, filename))
+        filename = form.file.data.filename
+        form.file.data.save(os.path.join(path_to_folder, filename))
         converter = VideoConverter(path_to_folder, filename)
-        converter.convert(form.format.data)
-        return render_template('result.html')
+        res = converter.convert(form.file_format.data)
+        path = res['new_file_path'] if isinstance(error_converting(res), dict) else 'error'
+        if path == 'error':
+            return redirect(url_for('index'))
+        new_file = path.split('/')[-1]
+        return render_template('result.html', path=path, new_filename=new_file)
     return render_template('convert.html', form=form)
 
 
+def check_operation_id():
+    session['user_operation_id'] = uuid.uuid4().hex if session.get('user_operation_id') is None \
+        else session.get('user_operation_id')
+
+
+def error_converting(result):
+    if not isinstance(result, dict):
+        flash('An error occurred while converting the file.'
+              ' It is possible that you have uploaded a broken file.'
+              ' If the file is working, then try changing the format')
+        return None
+    return result
+
+
 if __name__ == '__main__':
-    app.run(port=8080)
+    app.run(port=8080, debug=True)

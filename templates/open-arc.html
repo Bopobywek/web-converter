@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="container" style="margin-top: 50px;">
+    {% if form %}
+    <form method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag()}}
+        <h2 class="text-center" style="margin-top: -20px; margin-bottom: 40px;">Choose archive</h2>
+        <div class="input-group" style="margin-top: 10px; margin-bottom: 10px;">
+            <div class="custom-file">
+                {{ form.file(type="file", class="custom-file-input", id="inputGroupFile04",
+                **{'aria-describedby': "inputGroupFileAddon04"}) }}
+                {{ form.file.label(class="custom-file-label", for="inputGroupFile04") }}
+            </div>
+        </div>
+        <center>
+            <div class="input-group-append" style="margin: auto;">
+                {{ form.submit(class="btn btn-success", id="inputGroupFileAddon04", style="width: 100%;") }}
+            </div>
+        </center>
+    </form>
+    {% else %}
+    {% if files %}
+    <div class="row">
+        <div class="col">
+            <h2 class="text-center" style="margin-top: -20px; margin-bottom: 40px;">{{ filename }} content</h2>
+        </div>
+    </div>
+    <ul class="list-group">
+        {% for el in files %}
+        <li class="list-group-item" style="margin-top: 5px; margin-bottom: 5px;">
+            <div class="row">
+                <div class="col">
+                    <p style="margin: auto;">{{ el[1] }}</p>
+                </div>
+                <div class="col">
+                    <a class="btn btn-outline-success" href="{{ url_for('download', file_path=el[0])}}"
+                       style="float: right;"> Extract!</a>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
