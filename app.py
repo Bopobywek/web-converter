@@ -52,12 +52,13 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or user.check_password(form.password.data) is False:
-            flash('Invalid Username or password')
+            flash('Invalid Username or password', category='danger')
             return redirect(url_for('login'))
         else:
             login_user(user)
-            flash('Logged in successfully.')
+            flash('Logged in successfully', category='success')
             return redirect(url_for('index'))
+    print(form.errors)
     return render_template('login.html', form=form, title='Authorization')
 
 
@@ -72,20 +73,24 @@ def logout():
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
     if current_user.is_authenticated:
+        flash('Already logged in', category='danger')
         return redirect(url_for('index'))
     form = RegForm()
     if form.validate_on_submit():
         if User.query.filter_by(username=form.username.data).first() is not None:
-            flash('Username is busy')
+            flash('Username is busy', category='danger')
             return redirect(url_for('registration'))
         elif User.query.filter_by(email=form.email.data).first() is not None:
-            flash('Email is busy')
+            flash('Email is busy', 'error')
             return redirect(url_for('registration'))
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
         update_session(user)
-        flash('Account created successful!')
+        flash('Account created successful!', category='success')
         return redirect(url_for('login'))
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
     return render_template('registration.html', form=form, title='Registration')
 
 
@@ -102,11 +107,14 @@ def open_archive():
         arc = ArchiveFuncs(path_to_folder, filename)
         result = arc.extract_archive()
         if isinstance(result, tuple):
-            flash('Sorry, an unknown error occurred.')
+            flash('Sorry, an unknown error occurred', category='danger')
             return redirect(url_for('index'))
         files, filename = arc.all_files()
-        return render_template('open-arc.html', files=files.get('files'), filename=filename)
-    return render_template('open-arc.html', form=form)
+        return render_template('open-arc.html', files=files.get('files'), filename=filename, title='Archive Open')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('open-arc.html', form=form, title='Archive Open')
 
 
 @app.route('/archive-convert', methods=['GET', 'POST'])
@@ -124,11 +132,12 @@ def convert_archive():
         arc = ArchiveFuncs(path_to_folder, filename)
         result = arc.extract_archive()
         if isinstance(result, tuple):
-            flash('Sorry, an unknown error occurred. Please try again later.')
+            flash('Sorry, an unknown error occurred. Please try again later.', category='danger')
             return redirect(url_for('index'))
         files, archive_filename = arc.all_files()
         return render_template('convert-arc.html', files=files.get('files'), filename=archive_filename,
-                               get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS, form2=form2)
+                               get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS, form2=form2,
+                               title='Archive Convert')
     if form2.validate_on_submit():
         dict_of_files = request.form.to_dict()
         files = list(filter(lambda x: os.path.exists(x), dict_of_files.keys()))
@@ -140,7 +149,7 @@ def convert_archive():
             result = converter.convert()
             if bool(result):
                 flash('Sorry, {} error occurred, but the archive can be successfully created.'
-                      ' Please note that there may be broken content.'.format(len(result)))
+                      ' Please note that there may be broken content'.format(len(result)), category='warning')
             archive_filename = uuid.uuid4().hex if archive_filename is None else archive_filename
             arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id')),
                                          archive_filename)
@@ -148,12 +157,22 @@ def convert_archive():
             if isinstance(path_new, str):
                 el_path_new = path_new.split('/')
                 file_new = el_path_new[-1]
-                return render_template('result.html', path=path_new, new_filename=file_new)
+                return render_template('result.html', path=path_new, new_filename=file_new, title='Download')
             else:
-                flash('Sorry, an unknown error occurred.')
+                flash('Sorry, an unknown error occurred', category='danger')
             return redirect(url_for('index'))
-        return redirect(url_for('convert_archive'))
-    return render_template('convert-arc.html', form=form)
+        archive_filename = uuid.uuid4().hex if archive_filename is None else archive_filename
+        arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id')),
+                                     archive_filename)
+        path_new = arc_converter.make_archive(dict_of_files['arc'])
+        if isinstance(path_new, str):
+            el_path_new = path_new.split('/')
+            file_new = el_path_new[-1]
+            return render_template('result.html', path=path_new, new_filename=file_new, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert-arc.html', form=form, title='Archive Convert')
 
 
 @app.route('/download/<path:file_path>', methods=['GET', 'POST'])
@@ -167,7 +186,7 @@ def download(file_path):
         return redirect(url_for('index'))
     except Exception as e:
         flash('Sorry, an unknown error occurred while getting the link to download the file.'
-              ' Please try again later.')
+              ' Please try again later', category='danger')
         return redirect(url_for('index'))
 
 
@@ -187,8 +206,11 @@ def convert_picture():
         if path == 'error':
             return redirect(url_for('index'))
         new_file = path.split('/')[-1]
-        return render_template('result.html', path=path, new_filename=new_file)
-    return render_template('convert.html', form=form)
+        return render_template('result.html', path=path, new_filename=new_file, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert.html', form=form, title='Convert Image')
 
 
 @app.route('/audio-convert', methods=['GET', 'POST'])
@@ -207,8 +229,11 @@ def convert_audio():
         if path == 'error':
             return redirect(url_for('index'))
         new_file = path.split('/')[-1]
-        return render_template('result.html', path=path, new_filename=new_file)
-    return render_template('convert.html', form=form)
+        return render_template('result.html', path=path, new_filename=new_file, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert.html', form=form, title='Convert Audio')
 
 
 @app.route('/video-convert', methods=['GET', 'POST'])
@@ -227,8 +252,11 @@ def convert_video():
         if path == 'error':
             return redirect(url_for('index'))
         new_file = path.split('/')[-1]
-        return render_template('result.html', path=path, new_filename=new_file)
-    return render_template('convert.html', form=form)
+        return render_template('result.html', path=path, new_filename=new_file, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert.html', form=form, title='Convert video')
 
 
 def check_operation_id():
@@ -240,12 +268,10 @@ def error_converting(result):
     if not isinstance(result, dict):
         flash('An error occurred while converting the file.'
               ' It is possible that you have uploaded a broken file.'
-              ' If the file is working, then try changing the format')
+              ' If the file is working, then try changing the format', category='danger')
         return None
     return result
 
-
-#
 
 def save_file(filename, path, file_data):
     try:
@@ -253,7 +279,7 @@ def save_file(filename, path, file_data):
         file_data.save(os.path.join(path, filename))
         return filename
     except Exception as e:
-        flash('Sorry, an unknown error occurred. Please try again later.')
+        flash('Sorry, an unknown error occurred. Please try again later', category='danger')
 
 
 if __name__ == '__main__':
