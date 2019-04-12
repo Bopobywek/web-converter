@@ -50,4 +50,4 @@ class ArchiveFuncs(object):
 
 
 if __name__ == '__main__':
-    pass
+    print(ARCHIVE_SUPPORTED_FORMATS)

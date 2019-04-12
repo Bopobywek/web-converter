@@ -110,8 +110,11 @@ def open_archive():
             flash('Sorry, an unknown error occurred', category='danger')
             return redirect(url_for('index'))
         files, filename = arc.all_files()
-        return render_template('open-arc.html', files=files.get('files'), filename=filename)
-    return render_template('open-arc.html', form=form)
+        return render_template('open-arc.html', files=files.get('files'), filename=filename, title='Archive Open')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('open-arc.html', form=form, title='Archive Open')
 
 
 @app.route('/archive-convert', methods=['GET', 'POST'])
@@ -133,7 +136,8 @@ def convert_archive():
             return redirect(url_for('index'))
         files, archive_filename = arc.all_files()
         return render_template('convert-arc.html', files=files.get('files'), filename=archive_filename,
-                               get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS, form2=form2)
+                               get_file_type=get_file_type, arc_formats=ARCHIVE_SUPPORTED_FORMATS, form2=form2,
+                               title='Archive Convert')
     if form2.validate_on_submit():
         dict_of_files = request.form.to_dict()
         files = list(filter(lambda x: os.path.exists(x), dict_of_files.keys()))
@@ -153,12 +157,22 @@ def convert_archive():
             if isinstance(path_new, str):
                 el_path_new = path_new.split('/')
                 file_new = el_path_new[-1]
-                return render_template('result.html', path=path_new, new_filename=file_new)
+                return render_template('result.html', path=path_new, new_filename=file_new, title='Download')
             else:
                 flash('Sorry, an unknown error occurred', category='danger')
             return redirect(url_for('index'))
-        return redirect(url_for('convert_archive'))
-    return render_template('convert-arc.html', form=form)
+        archive_filename = uuid.uuid4().hex if archive_filename is None else archive_filename
+        arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id')),
+                                     archive_filename)
+        path_new = arc_converter.make_archive(dict_of_files['arc'])
+        if isinstance(path_new, str):
+            el_path_new = path_new.split('/')
+            file_new = el_path_new[-1]
+            return render_template('result.html', path=path_new, new_filename=file_new, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert-arc.html', form=form, title='Archive Convert')
 
 
 @app.route('/download/<path:file_path>', methods=['GET', 'POST'])
@@ -192,8 +206,11 @@ def convert_picture():
         if path == 'error':
             return redirect(url_for('index'))
         new_file = path.split('/')[-1]
-        return render_template('result.html', path=path, new_filename=new_file)
-    return render_template('convert.html', form=form)
+        return render_template('result.html', path=path, new_filename=new_file, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert.html', form=form, title='Convert Image')
 
 
 @app.route('/audio-convert', methods=['GET', 'POST'])
@@ -212,8 +229,11 @@ def convert_audio():
         if path == 'error':
             return redirect(url_for('index'))
         new_file = path.split('/')[-1]
-        return render_template('result.html', path=path, new_filename=new_file)
-    return render_template('convert.html', form=form)
+        return render_template('result.html', path=path, new_filename=new_file, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert.html', form=form, title='Convert Audio')
 
 
 @app.route('/video-convert', methods=['GET', 'POST'])
@@ -232,8 +252,11 @@ def convert_video():
         if path == 'error':
             return redirect(url_for('index'))
         new_file = path.split('/')[-1]
-        return render_template('result.html', path=path, new_filename=new_file)
-    return render_template('convert.html', form=form)
+        return render_template('result.html', path=path, new_filename=new_file, title='Download')
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
+    return render_template('convert.html', form=form, title='Convert video')
 
 
 def check_operation_id():
