@@ -17,16 +17,6 @@ def delete_folder(name):
     shutil.rmtree(os.path.join(USER_FILES_DIRCTORY, name))
 
 
-def delete_user_file():
-    pass
-
-
-def validate_file(path, name):
-    if os.path.isdir(path):
-        directory = os.listdir(path)
-        return name in directory
-
-
 def get_file_type(file):
     suf = Path(file).suffix[1:].upper()
     if suf in AUDIO_SUPPORTED_FORMATS:
@@ -35,13 +25,3 @@ def get_file_type(file):
         return PICTURE_SUPPORTED_FORMATS
     elif suf in VIDEO_SUPPORTED_FORMATS:
         return VIDEO_SUPPORTED_FORMATS
-
-
-def save_archive(path, filename, data):
-    data.save(os.path.join(path, filename))
-    os.mkdir(os.path.join(path, 'content'))
-
-
-def save_file():
-    pass
-

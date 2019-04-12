@@ -42,7 +42,6 @@ class ArchiveConvertForm(FlaskForm):
                                                 FileAllowed(SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS.values(),
                                                             'Unsupported type')])
     submit = SubmitField('Open!')
-    submit2 = SubmitField('Convert!')
 
 
 class ArchiveConvertForm2(FlaskForm):

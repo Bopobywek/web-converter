@@ -22,16 +22,22 @@ class ArchiveFuncs(object):
             self.filename = filename
 
     def extract_archive(self):
-        directory = os.path.join(self.path, ARCHIVE_CONTENT_FOLDER)
-        if os.path.exists(directory):
-            shutil.rmtree(directory)
-        os.mkdir(directory)
-        shutil.unpack_archive(self.original_file, directory, FORMAT_TO_SUFFIXES.get(self.suffix))
+        try:
+            directory = os.path.join(self.path, ARCHIVE_CONTENT_FOLDER)
+            if os.path.exists(directory):
+                shutil.rmtree(directory)
+            os.mkdir(directory)
+            shutil.unpack_archive(self.original_file, directory, FORMAT_TO_SUFFIXES.get(self.suffix))
+        except Exception as e:
+            return 'error', e
 
     def make_archive(self, arc_format):
-        filename = shutil.make_archive(os.path.join(self.path, self.filename),
-                                       arc_format, os.path.join(self.path, ARCHIVE_CONTENT_FOLDER))
-        return '/'.join(filename.split('/')[-3:])
+        try:
+            filename = shutil.make_archive(os.path.join(self.path, self.filename),
+                                           arc_format, os.path.join(self.path, ARCHIVE_CONTENT_FOLDER))
+            return '/'.join(filename.split('/')[-3:])
+        except Exception as e:
+            return 'error', e
 
     def all_files(self):
         content_of_dir = dict(dirs=list(), files_full=list(), files=list())
