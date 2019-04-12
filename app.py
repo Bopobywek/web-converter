@@ -105,16 +105,6 @@ def open_archive():
     return render_template('open-arc.html', form=form)
 
 
-@app.route('/archive-create', methods=['GET', 'POST'])
-def create_archive():
-    form = ArchiveCreateForm()
-    if form.validate_on_submit():
-        check_operation_id()
-        operation_id = session.get('user_operation_id')
-        print(form.data.files)
-    return render_template('create-arc.html', form=form)
-
-
 @app.route('/archive-convert', methods=['GET', 'POST'])
 def convert_archive():
     form = ArchiveConvertForm()
