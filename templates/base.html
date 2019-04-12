@@ -36,6 +36,7 @@
             margin-bottom: 15px;
             box-shadow: 0 0 8px rgba(204, 201, 210, 0.41);
         }
+
         .form-file-upload {
             width: 500px;
             margin: auto;
@@ -83,23 +84,23 @@
 
             <ul class="navbar-nav mr-auto">
                 {% if not current_user.is_authenticated %}
-                    <li class="nav-item active">
-                        <a class="nav-link" href="/login">Sign in
-                        </a>
-                    </li>
-                    <li class="nav-item active">
-                        <a class="nav-link" href="/registration">Sign up</a>
-                    </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/login">Sign in
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/registration">Sign up</a>
+                </li>
                 {% else %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink"
-                           data-toggle="dropdown"
-                           aria-haspopup="true"
-                           aria-expanded="false">{{ current_user.username }}</a>
-                        <div class="dropdown-menu dropdown-dark" aria-labelledby="navbarDropdownMenuLink">
-                            <a class="dropdown-item" href="/logout">Log out</a>
-                        </div>
-                    </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink"
+                       data-toggle="dropdown"
+                       aria-haspopup="true"
+                       aria-expanded="false">{{ current_user.username }}</a>
+                    <div class="dropdown-menu dropdown-dark" aria-labelledby="navbarDropdownMenuLink">
+                        <a class="dropdown-item" href="/logout">Log out</a>
+                    </div>
+                </li>
                 {% endif %}
             </ul>
         </div>
@@ -108,6 +109,17 @@
 <main>
     {% block content %}{% endblock %}
 </main>
+{% with messages = get_flashed_messages(with_categories=True) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category }} alert-dismissible fade show" style="width: 400px; float: left;position: fixed;
+right: 5px;top: 90%;height: 50px;display: block;">
+    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+    {{ message }}.
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
 <footer class="fixed-footer">
 
     <div class="text-center" style="margin-top: 60px;">Created by AndrewN for
