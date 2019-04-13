@@ -1,6 +1,5 @@
 import os
 import uuid
-import datetime
 
 from flask import Flask, render_template, redirect, flash, \
     url_for, session, send_from_directory, request
@@ -11,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
 from convert_functions import PictureConverter, VideoConverter, AudioConverter, Converter
-from db import db, User, update_session, Operation
+from db import db, User, update_session
 from file_upload import PictureForm, AudioForm, VideoForm, \
     ArchiveOpenForm, ArchiveConvertForm, ArchiveConvertForm2
 from loginform import LoginForm
