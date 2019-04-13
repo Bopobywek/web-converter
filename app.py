@@ -4,8 +4,6 @@ import datetime
 
 from flask import Flask, render_template, redirect, flash, \
     url_for, session, send_from_directory, request
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager, login_user, \
     current_user, logout_user, login_required
@@ -29,9 +27,6 @@ app.config.from_object(Config())
 db.app = app
 db.init_app(app)
 db.create_all()
-admin = Admin(app)
-admin.add_view(ModelView(User, db.session))
-admin.add_view(ModelView(Operation, db.session))
 
 scheduler = APScheduler()
 scheduler.init_app(app)
@@ -204,6 +199,7 @@ def convert_archive():
     return render_template('convert-arc.html', form=form, title='Archive Convert')
 
 
+# noinspection PyBroadException
 @app.route('/download/<path:file_path>', methods=['GET', 'POST'])
 def download(file_path):
     try:
@@ -213,7 +209,7 @@ def download(file_path):
             path = '/'.join(splited[:-1])
             return send_from_directory(path, filename, as_attachment=True)
         return redirect(url_for('index'))
-    except Exception as e:
+    except Exception:
         flash('Sorry, an unknown error occurred while getting the link to download the file.'
               ' Please try again later', category='danger')
         return redirect(url_for('index'))
@@ -302,12 +298,13 @@ def error_converting(result):
     return result
 
 
+# noinspection PyBroadException
 def save_file(filename, path, file_data):
     try:
         filename = secure_filename(filename)
         file_data.save(os.path.join(path, filename))
         return filename
-    except Exception as e:
+    except Exception:
         flash('Sorry, an unknown error occurred. Please try again later', category='danger')
 
 
