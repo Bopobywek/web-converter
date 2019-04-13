@@ -1,5 +1,6 @@
 import os
 import uuid
+import datetime
 
 from flask import Flask, render_template, redirect, flash, \
     url_for, session, send_from_directory, request
@@ -74,7 +75,10 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user is None or user.check_password(form.password.data) is False:
+        if user is None:
+            flash('User not found', category='danger')
+            return redirect(url_for('registration'))
+        elif user.check_password(form.password.data) is False:
             flash('Invalid Username or password', category='danger')
             return redirect(url_for('login'))
         else:

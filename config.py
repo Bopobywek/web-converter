@@ -5,7 +5,7 @@ class Config(object):
             'func': 'db:job_delete_inactive',
             'args': (),
             'trigger': 'interval',
-            'minutes': 1
+            'minutes': 30
         }
     ]
 

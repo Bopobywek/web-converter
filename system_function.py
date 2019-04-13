@@ -17,7 +17,9 @@ def create_folder(name):
 
 
 def delete_folder(name):
-    shutil.rmtree(os.path.join(USER_FILES_DIRCTORY, name))
+    path = os.path.join(USER_FILES_DIRCTORY, name)
+    if os.path.exists(path):
+        shutil.rmtree(os.path.join(USER_FILES_DIRCTORY, name))
 
 
 def get_file_type(file):

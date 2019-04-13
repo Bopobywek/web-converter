@@ -1,8 +1,10 @@
+import os
 from datetime import datetime
+import shutil
 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask_login import UserMixin
 
 PATH_TO_FILES = 'files'
 
@@ -29,7 +31,7 @@ class User(UserMixin, db.Model):
 class Operation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_operation_id = db.Column(db.String(1000), index=True, nullable=False, unique=True)
-    timestamp = db.Column(db.DateTime, nullable=True, default=datetime.timestamp)
+    timestamp = db.Column(db.DateTime, nullable=True, default=datetime.utcnow())
 
     def __repr__(self):
         return '<Operation {} {}>'.format(self.user_operation_id, self.timestamp)
@@ -46,14 +48,21 @@ def job_delete_inactive():
     for op in ops:
         last_activity = op.timestamp
         uoid = op.user_operation_id
-        print(last_activity, uoid)
+        if float(datetime.timestamp(datetime.utcnow())) - float(datetime.timestamp(last_activity)) > 10800:
+            delete_folder(uoid)
+            db.session.delete(op)
+            update_session()
+
+
+def delete_folder(name):
+    path = os.path.join(PATH_TO_FILES, name)
+    if os.path.exists(path):
+        shutil.rmtree(os.path.join(PATH_TO_FILES, name))
 
 
 def to_db(name):
     op = Operation.query.filter_by(user_operation_id=name).first()
     if op is None:
         op = Operation(user_operation_id=name)
-    op.timestamp = datetime.timestamp()
+    op.timestamp = datetime.utcnow()
     update_session(op)
-
-
