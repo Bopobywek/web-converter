@@ -3,31 +3,38 @@ import uuid
 
 from flask import Flask, render_template, redirect, flash, \
     url_for, session, send_from_directory, request
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
+from flask_apscheduler import APScheduler
 from flask_login import LoginManager, login_user, \
     current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
 
 from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
 from convert_functions import PictureConverter, VideoConverter, AudioConverter, Converter
-from db import db, User, update_session, to_db
+from db import db, User, update_session, Operation
 from file_upload import PictureForm, AudioForm, VideoForm, \
     ArchiveOpenForm, ArchiveConvertForm, ArchiveConvertForm2
 from loginform import LoginForm
 from regform import RegForm
 from system_function import create_folder, get_file_type
+from config import Config
+
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'super_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config.from_object(Config())
 db.app = app
 db.init_app(app)
 db.create_all()
 admin = Admin(app)
 admin.add_view(ModelView(User, db.session))
+admin.add_view(ModelView(Operation, db.session))
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -46,10 +53,8 @@ def limit(e):
 @app.before_request
 def before_request():
     check_operation_id()
-    if current_user.is_authenticated:
-        app.config['MAX_CONTENT_LENGTH'] = 400 * 1024 * 1024
-    else:
-        app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+    app.config['MAX_CONTENT_LENGTH'] = 400 * 1024 * 1024 if \
+        current_user.is_authenticated else 100 * 1024 * 1024
 
 
 @login_manager.user_loader

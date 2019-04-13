@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import UserMixin
 
+PATH_TO_FILES = 'files'
 
 db = SQLAlchemy()
 
@@ -28,7 +29,7 @@ class User(UserMixin, db.Model):
 class Operation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_operation_id = db.Column(db.String(1000), index=True, nullable=False, unique=True)
-    timestamp = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, nullable=True, default=datetime.timestamp)
 
     def __repr__(self):
         return '<Operation {} {}>'.format(self.user_operation_id, self.timestamp)
@@ -40,11 +41,19 @@ def update_session(*args):
     db.session.commit()
 
 
+def job_delete_inactive():
+    ops = Operation.query.all()
+    for op in ops:
+        last_activity = op.timestamp
+        uoid = op.user_operation_id
+        print(last_activity, uoid)
+
+
 def to_db(name):
     op = Operation.query.filter_by(user_operation_id=name).first()
     if op is None:
         op = Operation(user_operation_id=name)
-    op.timestamp = datetime.utcnow()
+    op.timestamp = datetime.timestamp()
     update_session(op)
 
 

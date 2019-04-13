@@ -116,10 +116,11 @@
 {% with messages = get_flashed_messages(with_categories=True) %}
 {% if messages %}
 {% for category, message in messages %}
-<div class="alert alert-{{ category }} alert-dismissible fade show" style="width: 400px; float: left;position: fixed;
-right: 5px;top: 90%;height: 50px;display: block;">
+<div class="alert alert-{{ category }} alert-dismissible fade show text-center" style="width: 400px; float: left;
+position: fixed;
+right: 5px;top: 85%;height: 50px;display: block;">
     <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-    {{ message }}.
+    <p style="margin: auto;">{{ message }}.</p>
 </div>
 {% endfor %}
 {% endif %}
