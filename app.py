@@ -6,10 +6,12 @@ from flask import Flask, render_template, redirect, flash, \
 from flask_login import LoginManager, login_user, \
     current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
 
 from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
 from convert_functions import PictureConverter, VideoConverter, AudioConverter, Converter
-from db import db, User, update_session
+from db import db, User, update_session, to_db
 from file_upload import PictureForm, AudioForm, VideoForm, \
     ArchiveOpenForm, ArchiveConvertForm, ArchiveConvertForm2
 from loginform import LoginForm
@@ -20,18 +22,34 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 db.app = app
 db.init_app(app)
 db.create_all()
+admin = Admin(app)
+admin.add_view(ModelView(User, db.session))
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
+@app.errorhandler(413)
+def limit(e):
+    if current_user.is_authenticated:
+        flash('Max file size is 400 MB', category='error')
+    else:
+        flash('Max file size for unauthorized users is 100 MB', category='error')
+    return redirect(request.referrer)
+
+
 @app.before_request
 def before_request():
     check_operation_id()
+    if current_user.is_authenticated:
+        app.config['MAX_CONTENT_LENGTH'] = 400 * 1024 * 1024
+    else:
+        app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 
 @login_manager.user_loader
@@ -58,7 +76,9 @@ def login():
             login_user(user)
             flash('Logged in successfully', category='success')
             return redirect(url_for('index'))
-    print(form.errors)
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
     return render_template('login.html', form=form, title='Authorization')
 
 
@@ -83,7 +103,7 @@ def registration():
         elif User.query.filter_by(email=form.email.data).first() is not None:
             flash('Email is busy', 'error')
             return redirect(url_for('registration'))
-        user = User(username=form.username.data, email=form.email.data)
+        user = User(username=form.username.data, email=form.email.data, status='user')
         user.set_password(form.password.data)
         update_session(user)
         flash('Account created successful!', category='success')
