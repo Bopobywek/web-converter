@@ -45,6 +45,11 @@ def limit(e):
     return redirect(request.referrer)
 
 
+@app.errorhandler(404)
+def limit(e):
+    return render_template('not_found.html')
+
+
 @app.before_request
 def before_request():
     check_operation_id()
