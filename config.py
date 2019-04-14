@@ -25,8 +25,6 @@ class Config(object):
 
     MAIL_USE_SSL = True
 
-    MAIL_DEBUG = True
-
     MAIL_SUPPRESS_SEND = False
 
     TESTING = False
