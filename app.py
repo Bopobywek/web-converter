@@ -7,6 +7,8 @@ from flask_apscheduler import APScheduler
 from flask_login import LoginManager, login_user, \
     current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeSerializer
 
 from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
 from convert_functions import PictureConverter, VideoConverter, AudioConverter, Converter
@@ -17,15 +19,23 @@ from loginform import LoginForm
 from regform import RegForm
 from system_function import create_folder, get_file_type
 from config import Config
+from init_files import create_files
 
+
+MAX_CONTENT_LENGTH_FOR_AUTH = 400 * 1024 * 1024
+MAX_CONTENT_LENGTH_FOR_UNAUTH = 100 * 1024 * 1024
 
 app = Flask(__name__)
+create_files()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config.from_object(Config())
 db.app = app
 db.init_app(app)
 db.create_all()
+
+mail = Mail(app)
+
+serializer = URLSafeSerializer(app.config['SECRET_KEY'])
 
 scheduler = APScheduler()
 scheduler.init_app(app)
@@ -36,25 +46,14 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
-@app.errorhandler(413)
-def limit(e):
-    if current_user.is_authenticated:
-        flash('Max file size is 400 MB', category='error')
-    else:
-        flash('Max file size for unauthorized users is 100 MB', category='error')
-    return redirect(request.referrer)
-
-
 @app.errorhandler(404)
-def limit(e):
+def not_found(e):
     return render_template('not_found.html')
 
 
 @app.before_request
 def before_request():
     check_operation_id()
-    app.config['MAX_CONTENT_LENGTH'] = 400 * 1024 * 1024 if \
-        current_user.is_authenticated else 100 * 1024 * 1024
 
 
 @login_manager.user_loader
@@ -79,6 +78,9 @@ def login():
             return redirect(url_for('registration'))
         elif user.check_password(form.password.data) is False:
             flash('Invalid Username or password', category='danger')
+            return redirect(url_for('login'))
+        elif not user.confirmed:
+            flash('Please, confirm your email', category='danger')
             return redirect(url_for('login'))
         else:
             login_user(user)
@@ -109,17 +111,38 @@ def registration():
             flash('Username is busy', category='danger')
             return redirect(url_for('registration'))
         elif User.query.filter_by(email=form.email.data).first() is not None:
-            flash('Email is busy', 'error')
+            flash('Email is busy', category='danger')
             return redirect(url_for('registration'))
-        user = User(username=form.username.data, email=form.email.data, status='user')
+        email = form.email.data
+        confirmation_token = serializer.dumps(email, salt='token_email')
+        user = User(username=form.username.data, email=form.email.data, status='user', confirmed=False)
         user.set_password(form.password.data)
         update_session(user)
-        flash('Account created successful!', category='success')
+        msg = Message('Confirm your account on converter', sender='converter.c@bk.ru',
+                      recipients=[email])
+        link = url_for('confirmation', token=confirmation_token, _external=True)
+        msg.body = 'Click on this link: {}'.format(link)
+        mail.send(msg)
+        flash('Please, confirm your email.', category='primary')
         return redirect(url_for('login'))
     for errors in form.errors.values():
         for error in errors:
             flash(error, category='danger')
     return render_template('registration.html', form=form, title='Registration')
+
+
+@app.route('/confirmation/<token>')
+def confirmation(token):
+    email = serializer.loads(token, salt='token_email')
+    user = User.query.filter_by(email=email).first()
+    if user is not None:
+        user.confirmed = True
+        update_session()
+        flash('Account created successful!', category='success')
+        return redirect(url_for('login'))
+    else:
+        flash('Error. Try again')
+        return redirect(url_for('registration'))
 
 
 @app.route('/archive-open', methods=['GET', 'POST'])
@@ -129,6 +152,12 @@ def open_archive():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('open_archive'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -154,6 +183,12 @@ def convert_archive():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_archive'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -226,6 +261,12 @@ def convert_picture():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_picture'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -249,6 +290,12 @@ def convert_audio():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_audio'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -272,6 +319,12 @@ def convert_video():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_video'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -312,5 +365,21 @@ def save_file(filename, path, file_data):
         flash('Sorry, an unknown error occurred. Please try again later', category='danger')
 
 
+def check_content_length(length):
+    try:
+        length = int(length)
+        if current_user.is_authenticated:
+            if length > MAX_CONTENT_LENGTH_FOR_AUTH:
+                flash('Max file size is 400 MB', category='danger')
+                return 'limit'
+        else:
+            if length > MAX_CONTENT_LENGTH_FOR_UNAUTH:
+                flash('Max file size for unauthorized users is 100 MB', category='danger')
+                return 'limit'
+        return None
+    except Exception as e:
+        return 'error', e
+
+
 if __name__ == '__main__':
-    app.run(port=8080, debug=True)
+    app.run(port=8080, host='127.0.0.1')
