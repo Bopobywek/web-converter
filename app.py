@@ -3,6 +3,7 @@ import uuid
 
 from flask import Flask, render_template, redirect, flash, \
     url_for, session, send_from_directory, request
+from flask_apscheduler import APScheduler
 from flask_login import LoginManager, login_user, \
     current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
@@ -15,23 +16,45 @@ from file_upload import PictureForm, AudioForm, VideoForm, \
 from loginform import LoginForm
 from regform import RegForm
 from system_function import create_folder, get_file_type
+from config import Config
+
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'super_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config.from_object(Config())
 db.app = app
 db.init_app(app)
 db.create_all()
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
+@app.errorhandler(413)
+def limit(e):
+    if current_user.is_authenticated:
+        flash('Max file size is 400 MB', category='error')
+    else:
+        flash('Max file size for unauthorized users is 100 MB', category='error')
+    return redirect(request.referrer)
+
+
+@app.errorhandler(404)
+def limit(e):
+    return render_template('not_found.html')
+
+
 @app.before_request
 def before_request():
     check_operation_id()
+    app.config['MAX_CONTENT_LENGTH'] = 400 * 1024 * 1024 if \
+        current_user.is_authenticated else 100 * 1024 * 1024
 
 
 @login_manager.user_loader
@@ -51,14 +74,19 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user is None or user.check_password(form.password.data) is False:
+        if user is None:
+            flash('User not found', category='danger')
+            return redirect(url_for('registration'))
+        elif user.check_password(form.password.data) is False:
             flash('Invalid Username or password', category='danger')
             return redirect(url_for('login'))
         else:
             login_user(user)
             flash('Logged in successfully', category='success')
             return redirect(url_for('index'))
-    print(form.errors)
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, category='danger')
     return render_template('login.html', form=form, title='Authorization')
 
 
@@ -83,7 +111,7 @@ def registration():
         elif User.query.filter_by(email=form.email.data).first() is not None:
             flash('Email is busy', 'error')
             return redirect(url_for('registration'))
-        user = User(username=form.username.data, email=form.email.data)
+        user = User(username=form.username.data, email=form.email.data, status='user')
         user.set_password(form.password.data)
         update_session(user)
         flash('Account created successful!', category='success')
@@ -175,6 +203,7 @@ def convert_archive():
     return render_template('convert-arc.html', form=form, title='Archive Convert')
 
 
+# noinspection PyBroadException
 @app.route('/download/<path:file_path>', methods=['GET', 'POST'])
 def download(file_path):
     try:
@@ -184,7 +213,7 @@ def download(file_path):
             path = '/'.join(splited[:-1])
             return send_from_directory(path, filename, as_attachment=True)
         return redirect(url_for('index'))
-    except Exception as e:
+    except Exception:
         flash('Sorry, an unknown error occurred while getting the link to download the file.'
               ' Please try again later', category='danger')
         return redirect(url_for('index'))
@@ -273,12 +302,13 @@ def error_converting(result):
     return result
 
 
+# noinspection PyBroadException
 def save_file(filename, path, file_data):
     try:
         filename = secure_filename(filename)
         file_data.save(os.path.join(path, filename))
         return filename
-    except Exception as e:
+    except Exception:
         flash('Sorry, an unknown error occurred. Please try again later', category='danger')
 
 

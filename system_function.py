@@ -1,12 +1,15 @@
 import os
 import shutil
-from convert_functions import VIDEO_SUPPORTED_FORMATS, AUDIO_SUPPORTED_FORMATS, PICTURE_SUPPORTED_FORMATS
 from pathlib import Path
+
+from convert_functions import VIDEO_SUPPORTED_FORMATS, AUDIO_SUPPORTED_FORMATS, PICTURE_SUPPORTED_FORMATS
+from db import to_db
 
 USER_FILES_DIRCTORY = 'files/'
 
 
 def create_folder(name):
+    to_db(name)
     if os.path.exists(os.path.join(USER_FILES_DIRCTORY, name)):
         delete_folder(name)
     os.mkdir(os.path.join(USER_FILES_DIRCTORY, name))
@@ -14,7 +17,9 @@ def create_folder(name):
 
 
 def delete_folder(name):
-    shutil.rmtree(os.path.join(USER_FILES_DIRCTORY, name))
+    path = os.path.join(USER_FILES_DIRCTORY, name)
+    if os.path.exists(path):
+        shutil.rmtree(os.path.join(USER_FILES_DIRCTORY, name))
 
 
 def get_file_type(file):
