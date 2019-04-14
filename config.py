@@ -23,9 +23,7 @@ class Config(object):
 
     MAIL_PORT = 465
 
-    MAIL_TLS = False
-
-    MAIL_SSL = True
+    MAIL_USE_SSL = True
 
     MAIL_DEBUG = True
 

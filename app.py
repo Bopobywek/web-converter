@@ -137,6 +137,7 @@ def confirmation(token):
     user = User.query.filter_by(email=email).first()
     if user is not None:
         user.confirmed = True
+        update_session()
         flash('Account created successful!', category='success')
         return redirect(url_for('login'))
     else:
