@@ -7,6 +7,8 @@ from flask_apscheduler import APScheduler
 from flask_login import LoginManager, login_user, \
     current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeSerializer
 
 from archive_functions import ArchiveFuncs, ARCHIVE_SUPPORTED_FORMATS
 from convert_functions import PictureConverter, VideoConverter, AudioConverter, Converter
@@ -17,15 +19,21 @@ from loginform import LoginForm
 from regform import RegForm
 from system_function import create_folder, get_file_type
 from config import Config
+from init_files import create_files
 
 
 app = Flask(__name__)
+create_files()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config.from_object(Config())
 db.app = app
 db.init_app(app)
 db.create_all()
+
+mail = Mail(app)
+
+serializer = URLSafeSerializer(app.config['SECRET_KEY'])
 
 scheduler = APScheduler()
 scheduler.init_app(app)
@@ -80,6 +88,9 @@ def login():
         elif user.check_password(form.password.data) is False:
             flash('Invalid Username or password', category='danger')
             return redirect(url_for('login'))
+        elif not user.confirmed:
+            flash('Please, confirm your email', category='danger')
+            return redirect(url_for('login'))
         else:
             login_user(user)
             flash('Logged in successfully', category='success')
@@ -109,17 +120,37 @@ def registration():
             flash('Username is busy', category='danger')
             return redirect(url_for('registration'))
         elif User.query.filter_by(email=form.email.data).first() is not None:
-            flash('Email is busy', 'error')
+            flash('Email is busy', category='danger')
             return redirect(url_for('registration'))
-        user = User(username=form.username.data, email=form.email.data, status='user')
+        email = form.email.data
+        confirmation_token = serializer.dumps(email, salt='token_email')
+        user = User(username=form.username.data, email=form.email.data, status='user', confirmed=False)
         user.set_password(form.password.data)
         update_session(user)
-        flash('Account created successful!', category='success')
+        msg = Message('Confirm your account on converter', sender='converter.c@bk.ru',
+                      recipients=[email])
+        link = url_for('confirmation', token=confirmation_token, _external=True)
+        msg.body = 'Click on this link: {}'.format(link)
+        mail.send(msg)
+        flash('Please, confirm your email.', category='primary')
         return redirect(url_for('login'))
     for errors in form.errors.values():
         for error in errors:
             flash(error, category='danger')
     return render_template('registration.html', form=form, title='Registration')
+
+
+@app.route('/confirmation/<token>')
+def confirmation(token):
+    email = serializer.loads(token, salt='token_email')
+    user = User.query.filter_by(email=email).first()
+    if user is not None:
+        user.confirmed = True
+        flash('Account created successful!', category='success')
+        return redirect(url_for('login'))
+    else:
+        flash('Error. Try again')
+        return redirect(url_for('registration'))
 
 
 @app.route('/archive-open', methods=['GET', 'POST'])

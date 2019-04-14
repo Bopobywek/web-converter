@@ -14,3 +14,21 @@ class Config(object):
     SECRET_KEY = 'super_secret_key_for_project_00023'
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    MAIL_SERVER = 'smtp.mail.ru'
+
+    MAIL_USERNAME = ''
+
+    MAIL_PASSWORD = ''
+
+    MAIL_PORT = 465
+
+    MAIL_TLS = False
+
+    MAIL_SSL = True
+
+    MAIL_DEBUG = True
+
+    MAIL_SUPPRESS_SEND = False
+
+    TESTING = False
