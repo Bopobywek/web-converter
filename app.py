@@ -22,10 +22,12 @@ from config import Config
 from init_files import create_files
 
 
+MAX_CONTENT_LENGTH_FOR_AUTH = 400 * 1024 * 1024
+MAX_CONTENT_LENGTH_FOR_UNAUTH = 100 * 1024 * 1024
+
 app = Flask(__name__)
 create_files()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config.from_object(Config())
 db.app = app
 db.init_app(app)
@@ -44,25 +46,14 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
-@app.errorhandler(413)
-def limit(e):
-    if current_user.is_authenticated:
-        flash('Max file size is 400 MB', category='error')
-    else:
-        flash('Max file size for unauthorized users is 100 MB', category='error')
-    return redirect(request.referrer)
-
-
 @app.errorhandler(404)
-def limit(e):
+def not_found(e):
     return render_template('not_found.html')
 
 
 @app.before_request
 def before_request():
     check_operation_id()
-    app.config['MAX_CONTENT_LENGTH'] = 400 * 1024 * 1024 if \
-        current_user.is_authenticated else 100 * 1024 * 1024
 
 
 @login_manager.user_loader
@@ -160,6 +151,12 @@ def open_archive():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('open_archive'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -185,6 +182,12 @@ def convert_archive():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_archive'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -257,6 +260,12 @@ def convert_picture():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_picture'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -280,6 +289,12 @@ def convert_audio():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_audio'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -303,6 +318,12 @@ def convert_video():
         check_operation_id()
         operation_id = session.get('user_operation_id')
         path_to_folder = create_folder(operation_id)
+        content_res = check_content_length(request.headers.get('Content-Length'))
+        if isinstance(content_res, tuple):
+            flash('Sorry, an unknown error occurred. Try again later', category='danger')
+            return redirect(url_for('index'))
+        elif isinstance(content_res, str):
+            return redirect(url_for('convert_video'))
         filename = save_file(form.file.data.filename, path_to_folder, form.file.data)
         if filename is None:
             return redirect(url_for('index'))
@@ -341,6 +362,22 @@ def save_file(filename, path, file_data):
         return filename
     except Exception:
         flash('Sorry, an unknown error occurred. Please try again later', category='danger')
+
+
+def check_content_length(length):
+    try:
+        length = int(length)
+        if current_user.is_authenticated:
+            if length > MAX_CONTENT_LENGTH_FOR_AUTH:
+                flash('Max file size is 400 MB', category='danger')
+                return 'limit'
+        else:
+            if length > MAX_CONTENT_LENGTH_FOR_UNAUTH:
+                flash('Max file size for unauthorized users is 100 MB', category='danger')
+                return 'limit'
+        return None
+    except Exception as e:
+        return 'error', e
 
 
 if __name__ == '__main__':
