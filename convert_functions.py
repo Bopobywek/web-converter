@@ -9,7 +9,7 @@ from pydub import AudioSegment
 PICTURE_SUPPORTED_FORMATS = ['WEBP', 'BMP', 'PPM',
                              'JPEG', 'TIFF', 'GIF', 'PNG', 'SGI', 'JPG']
 AUDIO_SUPPORTED_FORMATS = ['MP3', 'WAV', 'OGG', 'FLAC', 'OPUS']
-VIDEO_SUPPORTED_FORMATS = ['MP4', 'AVI', 'GIF', 'OGG', 'FLV', 'MKV']
+VIDEO_SUPPORTED_FORMATS = ['AVI', 'GIF', 'OGG', 'FLV', 'MKV', 'MP4']
 
 
 class PictureConverter(object):
