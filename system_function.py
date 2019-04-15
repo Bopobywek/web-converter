@@ -22,6 +22,11 @@ def delete_folder(name):
         shutil.rmtree(os.path.join(USER_FILES_DIRCTORY, name))
 
 
+def create_files():
+    if not os.path.exists(USER_FILES_DIRCTORY):
+        os.mkdir(USER_FILES_DIRCTORY)
+
+
 def get_file_type(file):
     suf = Path(file).suffix[1:].upper()
     if suf in AUDIO_SUPPORTED_FORMATS:

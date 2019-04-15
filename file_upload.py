@@ -1,8 +1,8 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
-from wtforms import SubmitField, SelectField, MultipleFileField, TextField
+from wtforms import SubmitField, SelectField
 
-from archive_functions import SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS, ARCHIVE_SUPPORTED_FORMATS
+from archive_functions import SUPPORTED_ARCHIVE_FORMATS_FOR_FORMS
 from convert_functions import PICTURE_SUPPORTED_FORMATS, AUDIO_SUPPORTED_FORMATS, VIDEO_SUPPORTED_FORMATS
 
 
@@ -46,10 +46,3 @@ class ArchiveConvertForm(FlaskForm):
 
 class ArchiveConvertForm2(FlaskForm):
     submit2 = SubmitField('Convert!')
-
-
-class ArchiveCreateForm(FlaskForm):
-    filename = TextField('Filename', validators=[])
-    files = MultipleFileField('Choose files')
-    file_format = SelectField('Format', choices=[(x, x.lower()) for x in ARCHIVE_SUPPORTED_FORMATS])
-    submit = SubmitField('Create!')
