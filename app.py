@@ -17,13 +17,13 @@ from file_upload import PictureForm, AudioForm, VideoForm, \
     ArchiveOpenForm, ArchiveConvertForm, ArchiveConvertForm2
 from loginform import LoginForm
 from regform import RegForm
-from system_function import create_folder, get_file_type
+from system_function import create_folder, get_file_type, create_files
 from config import Config
-from init_files import create_files
 
 
 MAX_CONTENT_LENGTH_FOR_AUTH = 400 * 1024 * 1024
 MAX_CONTENT_LENGTH_FOR_UNAUTH = 100 * 1024 * 1024
+PATH_TO_FILES = 'files'
 
 app = Flask(__name__)
 create_files()
@@ -48,7 +48,8 @@ login_manager.login_view = 'login'
 
 @app.errorhandler(404)
 def not_found(e):
-    return render_template('not_found.html')
+    flash(e, category='danger')
+    return render_template('not_found.html', title='Ooops...')
 
 
 @app.before_request
@@ -214,7 +215,7 @@ def convert_archive():
                 flash('Sorry, {} error occurred, but the archive can be successfully created.'
                       ' Please note that there may be broken content'.format(len(result)), category='warning')
             archive_filename = uuid.uuid4().hex if archive_filename is None else archive_filename
-            arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id')),
+            arc_converter = ArchiveFuncs(os.path.join(PATH_TO_FILES, session.get('user_operation_id')),
                                          archive_filename)
             path_new = arc_converter.make_archive(dict_of_files['arc'])
             if isinstance(path_new, str):
@@ -225,7 +226,7 @@ def convert_archive():
                 flash('Sorry, an unknown error occurred', category='danger')
             return redirect(url_for('index'))
         archive_filename = uuid.uuid4().hex if archive_filename is None else archive_filename
-        arc_converter = ArchiveFuncs(os.path.join('files', session.get('user_operation_id')),
+        arc_converter = ArchiveFuncs(os.path.join(PATH_TO_FILES, session.get('user_operation_id')),
                                      archive_filename)
         path_new = arc_converter.make_archive(dict_of_files['arc'])
         if isinstance(path_new, str):
@@ -242,7 +243,7 @@ def convert_archive():
 @app.route('/download/<path:file_path>', methods=['GET', 'POST'])
 def download(file_path):
     try:
-        if 'files' in file_path and session.get('user_operation_id') in file_path:
+        if PATH_TO_FILES in file_path and session.get('user_operation_id') in file_path:
             splited = file_path.split('/')
             filename = splited[-1]
             path = '/'.join(splited[:-1])

@@ -1,12 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Ooops...</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}{{ title }}{{ endblock }}
+{% block content %}
 <img src="{{ url_for('static', filename='img/404.png') }}" alt="png" style="display:block;
   width:100%; height:100%;
   object-fit: cover;">
-</body>
-</html>
+{% endblock %}
